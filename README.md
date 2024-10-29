@@ -1,4 +1,4 @@
-# License-Plate-Recognition-Project(차량 번호판 인식 시스템)
+# License-Plate-Recognition-Project(차량 번호판 인식 프로젝트)
 
 이 프로젝트는 YOLO와 EAST 텍스트 검출기를 사용하여 차량의 번호판을 인식하는 시스템입니다. OpenCV, NumPy 및 Tesseract OCR을 활용하여 이미지에서 차량과 번호판을 감지하고, 텍스트를 추출합니다.
 
