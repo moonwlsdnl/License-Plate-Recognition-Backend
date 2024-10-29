@@ -17,7 +17,8 @@ layer_names = net.getLayerNames()
 output_layers = [layer_names[i - 1] for i in net.getUnconnectedOutLayers()]
 
 # Tesseract의 설치 경로 지정
-pytesseract.pytesseract.tesseract_cmd = '/usr/bin/tesseract'
+pytesseract.pytesseract.tesseract_cmd = '/usr/bin/tesseract' # Docker 실행 시
+# pytesseract.pytesseract.tesseract_cmd = '/opt/homebrew/bin/tesseract' # 로컬 실행 시
 
 # 자동차 검출 함수
 def carROI(image):
@@ -31,7 +32,6 @@ def carROI(image):
 
     confidences = []  # 객체 신뢰도 저장 리스트
     boxes = []        # 감지된 객체의 좌표 저장 리스트
-    img_cars = []     # 잘라낸 차량 이미지 저장 리스트
 
     # 네트워크 출력 결과를 반복하여 객체 탐지
     for out in outs:                 
@@ -53,14 +53,19 @@ def carROI(image):
 
                 boxes.append([x, y, w, h])    
                 confidences.append(float(confidence))
-                
-    # 비최대 억제(NMS) 적용하여 가장 신뢰도 높은 박스 선택
-    indexes = cv2.dnn.NMSBoxes(boxes, confidences, min_confidence, 0.4)
-    for i in range(len(boxes)):
-        if i in indexes:
-            x, y, w, h = boxes[i]
-            img_cars.append(image[y:y+h, x:x+w])     # 차량 이미지 잘라내기
-            return (boxes[i], image[y:y+h, x:x+w])   # 박스 좌표와 차량 이미지 리턴
+    
+    if confidences:
+        # 비최대 억제(NMS) 적용하여 가장 신뢰도 높은 박스 선택
+        indexes = cv2.dnn.NMSBoxes(boxes, confidences, min_confidence, 0.4)
+        
+        # indexes가 비어 있는지 확인
+        if len(indexes) > 0:
+            for i in indexes.flatten():  # Flatten을 사용하여 1D로 변환
+                x, y, w, h = boxes[i]
+                return (boxes[i], image[y:y+h, x:x+w])  # 차량 이미지 잘라내기
+
+    return None  # 감지 실패 시 None 반환
+    
         
 # 번호판 검출 함수
 def textROI(image):
@@ -78,7 +83,7 @@ def textROI(image):
 
     # 이미지를 리사이즈하고 새로운 크기의 이미지를 가져온다.
     image = cv2.resize(image, (newW, frame_size))  
-    scale_image = image[0:frame_size, start:start+frame_size]  # 잘라내어 정사각형 이미지 생성
+    # scale_image = image[0:frame_size, start:start+frame_size]  # 잘라내어 정사각형 이미지 생성
     # (H, W) = scale_image.shape[:2]
 
     # 이미지를 확인하기 위해 창에 띄운다.
@@ -158,6 +163,9 @@ def textROI(image):
 
             # 실제 패딩된 영역 추출 및 반환
             return ([startX, startY, endX, endY], orig[startY:endY, startX:endX])
+    
+    return None  # 감지 실패 시 None 반환
+
 
 # 이미지 전처리 함수
 def processROI(image):

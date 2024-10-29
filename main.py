@@ -5,6 +5,7 @@ from functions import carROI, textROI, processROI, textRead
 
 app = Flask(__name__)
 
+
 @app.route('/detect', methods=['POST'])
 def detect_objects():
     # 이미지 파일 받기
@@ -16,12 +17,23 @@ def detect_objects():
     # 이미지 읽기
     image = np.frombuffer(file.read(), np.uint8)
     image = cv2.imdecode(image, cv2.IMREAD_COLOR)
+    if image is None:
+        raise ValueError("Failed to decode image. Please check the input file format.")
+    
 
     # 차량 ROI 감지
-    ([x, y, w, h], car_image) = carROI(image)
+    car_roi = carROI(image)
+    if car_roi is None:
+        return jsonify({"error": "Vehicle not detected"}), 400
+    
+    ([x, y, w, h], car_image) = car_roi
 
     # 텍스트 ROI 감지
-    ([startX, startY, endX, endY], text_image) = textROI(car_image)
+    text_roi = textROI(car_image)
+    if text_roi is None:
+        return jsonify({"error": "License plate not detected"}), 400
+    
+    ([startX, startY, endX, endY], text_image) = text_roi
 
     # 이미지 처리
     process_image = processROI(text_image)
